@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Ahorro & Cetes App</title>
+    <style>
+        :root { --primary: #27ae60; --secondary: #2980b9; --danger: #e74c3c; --accent: #f39c12; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #2c3e50; -webkit-tap-highlight-color: transparent; }
+        .card { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #f8f9fa; padding: 15px; border-radius: 15px; margin-bottom: 15px; }
+        .input-group { display: flex; flex-direction: column; grid-column: span 1; }
+        .full-w { grid-column: span 2; }
+        label { font-weight: bold; margin-bottom: 4px; font-size: 0.75rem; color: #7f8c8d; text-transform: uppercase; }
+        input, select { padding: 10px; border: 1.5px solid #eee; border-radius: 10px; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--secondary); }
+        
+        .info-panel { grid-column: span 2; background: #eef7ff; padding: 12px; border-radius: 10px; font-size: 0.85rem; border-left: 4px solid var(--secondary); line-height: 1.4; }
+        
+        .btn-group { grid-column: span 2; display: flex; gap: 8px; }
+        .btn { flex: 2; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: white; font-size: 1rem; }
+        .btn-gen { background: var(--primary); }
+        .btn-reset { background: #dfe6e9; color: #636e72; flex: 1; }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { padding: 12px; border-radius: 15px; color: white; text-align: center; }
+        .bg-save { background: var(--primary); }
+        .bg-invest { background: var(--accent); }
+        .stat-val { font-size: 1.2rem; font-weight: 800; display: block; }
+        .stat-lab { font-size: 0.7rem; text-transform: uppercase; opacity: 0.9; }
+
+        .bar-container { background: #eee; border-radius: 20px; height: 12px; margin-bottom: 20px; overflow: hidden; }
+        .bar-fill { background: var(--primary); width: 0%; height: 100%; transition: 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+        .cell { padding: 12px 4px; background: #fff; border: 2px solid #eee; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .cell.checked { background: var(--primary); border-color: var(--primary); color: white; transform: scale(0.95); }
+        .cell-num { font-size: 0.65rem; display: block; opacity: 0.6; }
+        .cell-amt { font-size: 0.9rem; font-weight: bold; }
+
+        .bank-btn { display: block; text-align: center; background: var(--secondary); color: white; padding: 15px; border-radius: 15px; text-decoration: none; font-weight: bold; margin-top: 15px; box-shadow: 0 4px 12px rgba(41,128,185,0.2); }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 style="margin: 0 0 15px 0; text-align: center; font-size: 1.3rem;">🚀 Mi Ahorro Inteligente</h2>
+    
+    <div id="setupForm" class="setup-grid">
+        <div class="input-group">
+            <label>Meta ($)</label>
+            <input type="number" id="meta" value="50000" oninput="proyectar()">
+        </div>
+        <div class="input-group">
+            <label>Frecuencia</label>
+            <select id="freq" onchange="proyectar()">
+                <option value="1">Diario</option>
+                <option value="7">Semanal</option>
+                <option value="15">Quincenal</option>
+                <option value="30">Mensual</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Capacidad Máx ($)</label>
+            <input type="number" id="mMax" value="500" oninput="proyectar()">
+        </div>
+        <div class="input-group">
+            <label>Tasa CETES %</label>
+            <input type="number" id="tasa" value="11.0" step="0.1" oninput="proyectar()">
+        </div>
+        <div class="input-group full-w">
+            <label>Fecha de Término Deseada</label>
+            <input type="date" id="fTermino" onchange="proyectar('fecha')">
+        </div>
+        <div class="info-panel" id="proyTxt">Calculando proyección...</div>
+        <div class="btn-group">
+            <button class="btn btn-gen" onclick="generar()">Crear App de Ahorro</button>
+            <button class="btn btn-reset" onclick="reset()">Reset</button>
+        </div>
+    </div>
+
+    <div id="appArea" style="display:none;">
+        <div class="stat-grid">
+            <div class="stat-box bg-save">
+                <span class="stat-lab">Ahorrado</span>
+                <span class="stat-val" id="valAhorro">$0</span>
+            </div>
+            <div class="stat-box bg-invest">
+                <span class="stat-lab">Con CETES</span>
+                <span class="stat-val" id="valCetes">$0</span>
+            </div>
+        </div>
+        <div class="bar-container"><div id="bar" class="bar-fill"></div></div>
+        <div class="grid" id="grid"></div>
+        <a href="https://www.cetesdirecto.com/" target="_blank" class="bank-btn">Ir a Invertir 🏦</a>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('saveApp_v8')) || null;
+
+    function proyectar(modo) {
+        const meta = parseFloat(document.getElementById('meta').value) || 0;
+        const max = parseFloat(document.getElementById('mMax').value) || 1;
+        const fInput = document.getElementById('fTermino');
+        const freq = parseInt(document.getElementById('freq').value);
+
+        if (modo === 'fecha') {
+            const dias = Math.ceil((new Date(fInput.value) - new Date()) / (86400000));
+            const p = Math.max(1, Math.floor(dias/freq));
+            document.getElementById('mMax').value = Math.ceil((meta/p) * 1.3);
+        } else {
+            const p = Math.ceil(meta / ((10 + max) / 2));
+            let d = new Date(); d.setDate(d.getDate() + (p * freq));
+            fInput.valueAsDate = d;
+        }
+        
+        const pFinal = Math.ceil(meta / ((10 + parseFloat(document.getElementById('mMax').value)) / 2));
+        document.getElementById('proyTxt').innerHTML = `<b>Propuesta:</b> ${pFinal} depósitos.<br>Terminarías el: <b>${new Date(fInput.value).toLocaleDateString()}</b>`;
+    }
+
+    function generar() {
+        const meta = parseFloat(document.getElementById('meta').value);
+        const max = parseFloat(document.getElementById('mMax').value);
+        const freq = parseInt(document.getElementById('freq').value);
+        const fFin = new Date(document.getElementById('fTermino').value);
+        const dias = Math.ceil((fFin - new Date()) / 86400000);
+        const n = Math.max(1, Math.floor(dias / freq));
+
+        let casillas = [], acumulado = 0;
+        for (let i = 0; i < n; i++) {
+            let resto = n - i;
+            let maxA = Math.min(max, (meta - acumulado) - (resto - 1) * 10);
+            let m = (resto === 1) ? Math.round(meta - acumulado) : Math.floor(Math.random() * (maxA - 10 + 1)) + 10;
+            casillas.push({ m, c: false }); acumulado += m;
+        }
+        db = { meta, casillas, freq, tasa: document.getElementById('tasa').value };
+        localStorage.setItem('saveApp_v8', JSON.stringify(db));
+        render();
+    }
+
+    function render() {
+        if (!db) return;
+        document.getElementById('setupForm').style.display = 'none';
+        document.getElementById('appArea').style.display = 'block';
+        const g = document.getElementById('grid'); g.innerHTML = '';
+        let suma = 0;
+
+        db.casillas.forEach((item, i) => {
+            const d = document.createElement('div');
+            d.className = `cell ${item.c ? 'checked' : ''}`;
+            d.innerHTML = `<span class="cell-num">#${i+1}</span><span class="cell-amt">$${item.m}</span>`;
+            d.onclick = () => { db.casillas[i].c = !db.casillas[i].c; localStorage.setItem('saveApp_v8', JSON.stringify(db)); render(); };
+            g.appendChild(d);
+            if (item.c) suma += item.m;
+        });
+
+        document.getElementById('valAhorro').innerText = `$${suma.toLocaleString()}`;
+        document.getElementById('bar').style.width = (suma/db.meta)*100 + '%';
+        
+        const r_n = (db.tasa/100) / (365/db.freq);
+        const nCheck = db.casillas.filter(c => c.c).length;
+        const vCetes = (suma/(nCheck||1)) * ((Math.pow(1+r_n, nCheck)-1)/r_n);
+        document.getElementById('valCetes').innerText = `$${Math.round(vCetes || 0).toLocaleString()}`;
+    }
+
+    function reset() { if(confirm("¿Borrar todo?")) { localStorage.removeItem('saveApp_v8'); location.reload(); } }
+
+    window.onload = () => { proyectar(); if(db) render(); };
+</script>
+</body>
+</html>
